@@ -23,7 +23,6 @@
             color: #2c3e50;
             padding-bottom: 70px;
         }
-        /* Header Bar */
         header {
             background: var(--admin-dark);
             color: white;
@@ -43,13 +42,11 @@
             color: #81c784;
             margin-top: 4px;
         }
-        /* Container */
         .container {
             max-width: 600px;
             margin: 0 auto;
             padding: 15px;
         }
-        /* Fixed Navigation */
         nav.admin-nav {
             position: fixed;
             bottom: 0;
@@ -101,7 +98,7 @@
             border-radius: 6px;
             margin: 8px 0;
         }
-        select, button.btn-update {
+        select, input, textarea, button.btn-update {
             width: 100%;
             padding: 10px;
             margin-top: 8px;
@@ -136,12 +133,11 @@
         }
     </style>
 
-    <!-- Firebase App & Firestore SDKs -->
+    <!-- Firebase SDKs -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
       import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-      // ඔබගේ Firebase කොන්සෝලයෙන් ලබාගත් නිවැරදි විස්තර
       const firebaseConfig = {
         apiKey: "AIzaSyDtOiVEWrArAyQgqvqsU2TVI2cdTHCEisO",
         authDomain: "cleanlk-76d7a.firebaseapp.com",
@@ -154,56 +150,109 @@
 
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
+      window.db = db;
 
-      // Admin පැත්තෙන් පැමිණිලි Firebase එකෙන් ಲೋඩ් කරගැනීම
+      let allComplaintsData = [];
+
       window.loadAdminComplaints = async function() {
           const container = document.getElementById('admin-complaints-list');
           container.innerHTML = "<p style='color:#777;'>පැමිණිලි ලබාගනිමින් පවතී...</p>";
 
           try {
               const querySnapshot = await getDocs(collection(db, "complaints"));
-              container.innerHTML = "";
-
-              if(querySnapshot.empty) {
-                  container.innerHTML = "<p style='color:#777;'>කිසිදු පැමිණිල්ලක් ලැබී නැත.</p>";
-                  return;
-              }
-
+              allComplaintsData = [];
+              
               querySnapshot.forEach((documentSnap) => {
-                  const item = documentSnap.data();
-                  const docId = documentSnap.id;
-
-                  container.innerHTML += `
-                      <div class="card">
-                          <p><b>👤 User:</b> ${item.user || 'User'} <span class="warning-badge">Status: ${item.status || 'සලකා බලමින් සිටියි.'}</span></p>
-                          <p style="font-size:12px; color:#555;"><b>📅 දිනය/වේලාව:</b> ${item.date || ''} ${item.time || ''}</p>
-                          <p style="font-size:12px; color:#555;"><b>📍 Location:</b> ${item.location || ''}</p>
-                          ${item.photo ? `<img src="${item.photo}" class="image-preview">` : ''}
-                          <p style="font-size:13px;"><b>විස්තරය:</b> ${item.text || 'නැත'}</p>
-                          <hr style="margin:10px 0;">
-
-                          <label style="font-size:12px; font-weight:bold;">⚙️ ක්‍රියාමාර්ගය තෝරන්න:</label>
-                          <select id="status-select-${docId}" onchange="onStatusSelectChange('${docId}')">
-                              <option value="සලකා බලමින් සිටියි." ${item.status==='සලකා බලමින් සිටියි.'?'selected':''}>සලකා බලමින් සිටියි.</option>
-                              <option value="පිරිසිදු කරමින් සිටියි." ${item.status==='පිරිසිදු කරමින් සිටියි.'?'selected':''}>පිරිසිදු කරමින් සිටියි.</option>
-                              <option value="පිරිසිදු කළා." ${item.status==='පිරිසිදු කළා.'?'selected':''}>පිරිසිදු කළා.</option>
-                              <option value="අසත්‍ය තොරතුරකි." ${item.status==='අසත්‍ය තොරතුරකි.'?'selected':''}>අසත්‍ය තොරතුරකි.</option>
-                          </select>
-
-                          <div id="after-photo-upload-sec-${docId}" style="display:${item.status==='පිරිසිදු කළා.'?'block':'none'}; margin-top:10px;">
-                              <label style="font-size:12px; color:#2e7d32; font-weight:bold;">📸 After Photo:</label>
-                              <input type="file" id="after-photo-input-${docId}" accept="image/*">
-                              ${item.afterPhoto ? `<img src="${item.afterPhoto}" class="image-preview" style="max-height:100px;">` : ''}
-                          </div>
-
-                          <button class="btn-update" onclick="updateComplaintStatus('${docId}')">ක්‍රියාමාර්ගය යාවත්කාලීන කරන්න</button>
-                      </div>
-                  `;
+                  allComplaintsData.push({ id: documentSnap.id, ...documentSnap.data() });
               });
+
+              updateStatistics(allComplaintsData);
+              renderComplaintsList(allComplaintsData);
+
           } catch (e) {
               console.error("Error loading complaints: ", e);
               container.innerHTML = "<p style='color:red;'>පැමිණිලි ලබාගැනීමේ දෝෂයක් ඇතිවිය.</p>";
           }
+      };
+
+      function updateStatistics(data) {
+          document.getElementById('stat-total').innerText = data.length;
+          let inProgressCount = data.filter(item => item.status === 'පිරිසිදු කරමින් සිටියි.').length;
+          let resolvedCount = data.filter(item => item.status === 'පිරිසිදු කළා.').length;
+          
+          document.getElementById('stat-progress').innerText = inProgressCount;
+          document.getElementById('stat-resolved').innerText = resolvedCount;
+      }
+
+      function renderComplaintsList(data) {
+          const container = document.getElementById('admin-complaints-list');
+          container.innerHTML = "";
+
+          if(data.length === 0) {
+              container.innerHTML = "<p style='color:#777; text-align:center;'>පැමිණිලි කිසිවක් හමු නොවීය.</p>";
+              return;
+          }
+
+          data.forEach((item) => {
+              const docId = item.id;
+              
+              let locationHtml = '';
+              if (item.location) {
+                  if (item.location.startsWith('http')) {
+                      locationHtml = `<p style="font-size:12px; color:#555;"><b>📍 Location:</b> <a href="${item.location}" target="_blank" style="color: #007bff; text-decoration: underline;">სිතියමෙන් බලන්න (Open Map) ↗</a></p>`;
+                  } else {
+                      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`;
+                      locationHtml = `<p style="font-size:12px; color:#555;"><b>📍 Location:</b> <a href="${mapUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${item.location} (Map එකෙන් විවෘත කරන්න) ↗</a></p>`;
+                  }
+              } else {
+                  locationHtml = `<p style="font-size:12px; color:#555;"><b>📍 Location:</b> සඳහන් කර නැත</p>`;
+              }
+
+              container.innerHTML += `
+                  <div class="card">
+                      <p><b>👤 User:</b> ${item.user || 'User'} <span class="warning-badge">Status: ${item.status || 'සලකා බලමින් සිටියි.'}</span></p>
+                      <p style="font-size:12px; color:#555;"><b>📅 දිනය/වේලාව:</b> ${item.date || ''} ${item.time || ''}</p>
+                      ${locationHtml}
+                      ${item.photo ? `<img src="${item.photo}" class="image-preview">` : ''}
+                      <p style="font-size:13px;"><b>විස්තරය:</b> ${item.text || 'නැත'}</p>
+                      <hr style="margin:10px 0;">
+
+                      <label style="font-size:12px; font-weight:bold;">⚙️ ක්‍රියාමාර්ගය තෝරන්න:</label>
+                      <select id="status-select-${docId}" onchange="onStatusSelectChange('${docId}')">
+                          <option value="සලකා බලමින් සිටියි." ${item.status==='සලකා බලමින් සිටියි.'?'selected':''}>සලකා බලමින් සිටියි.</option>
+                          <option value="පිරිසිදු කරමින් සිටියි." ${item.status==='පිරිසිදු කරමින් සිටියි.'?'selected':''}>පිරිසිදු කරමින් සිටියි.</option>
+                          <option value="පිරිසිදු කළා." ${item.status==='පිරිසිදු කළා.'?'selected':''}>පිරිසිදු කළා.</option>
+                          <option value="අසත්‍ය තොරතුරකි." ${item.status==='අසත්‍ය තොරතුරකි.'?'selected':''}>අසත්‍ය තොරතුරකි.</option>
+                      </select>
+
+                      <div id="after-photo-upload-sec-${docId}" style="display:${item.status==='පිරිසිදු කළා.'?'block':'none'}; margin-top:10px;">
+                          <label style="font-size:12px; color:#2e7d32; font-weight:bold;">📸 After Photo:</label>
+                          <input type="file" id="after-photo-input-${docId}" accept="image/*">
+                          ${item.afterPhoto ? `<img src="${item.afterPhoto}" class="image-preview" style="max-height:100px;">` : ''}
+                      </div>
+
+                      <button class="btn-update" onclick="updateComplaintStatus('${docId}')">ක්‍රියාමාර්ගය යාවත්කාලීන කරන්න</button>
+                  </div>
+              `;
+          });
+      }
+
+      window.filterComplaints = function() {
+          const searchText = document.getElementById('complaintSearchInput').value.toLowerCase();
+          const selectedStatus = document.getElementById('complaintStatusFilter').value;
+
+          const filtered = allComplaintsData.filter(item => {
+              const location = (item.location || "").toLowerCase();
+              const user = (item.user || "").toLowerCase();
+              const status = item.status || "සලකා බලමින් සිටියි.";
+
+              const matchesSearch = location.includes(searchText) || user.includes(searchText);
+              const matchesStatus = (selectedStatus === "all") || (status === selectedStatus);
+
+              return matchesSearch && matchesStatus;
+          });
+
+          renderComplaintsList(filtered);
       };
 
       window.onStatusSelectChange = function(docId) {
@@ -332,11 +381,9 @@
 </head>
 <body>
 
-<!-- Password Protection Script -->
 <script>
     const adminPassword = "osha@2011"; 
     let enteredPassword = prompt("පරිපාලක (Admin) මුරපදය ඇතුළත් කරන්න:");
-    
     if (enteredPassword !== adminPassword) {
         alert("වැරදි මුරපදයක්! ඔබව මුල් පිටුවට හරවන ලදී.");
         window.location.href = "index.html"; 
@@ -351,31 +398,80 @@
 <div class="container">
     <!-- Admin Tab 1: ජනතා පැමිණිලි --> 
     <div id="admin-tab1" class="tab-content active"> 
-        <h3 style="margin-bottom: 12px; color: var(--admin-dark);">📥 ලැබුණු ජනතා පැමිණිලි</h3> 
+        
+        <!-- Region Selector Setup -->
+        <div class="card" style="margin-bottom: 15px; background: #fff; border-left: 5px solid #2e7d32;">
+            <h4 style="font-size: 14px; margin-bottom: 8px;">📍 මෙහෙයුම් ප්‍රදේශය තෝරන්න</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <select id="admin-province" onchange="updateDistricts()" style="padding:6px; font-size:12px;">
+                    <option value="">පළාත තෝරන්න...</option>
+                    <option value="Western">බස්නාහිර පළාත</option>
+                    <option value="Central">මධ්‍යම පළාත</option>
+                    <option value="Southern">දකුණු පළාත</option>
+                </select>
+                <select id="admin-district" style="padding:6px; font-size:12px;">
+                    <option value="">දිස්ත්‍රික්කය...</option>
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <input type="text" id="admin-ds-division" placeholder="ප්‍රා. ලේකම් කොට්ඨාසය" style="padding:6px; font-size:12px;">
+                <input type="text" id="admin-ps" placeholder="ප්‍රාදේශීය සභාව" style="padding:6px; font-size:12px;">
+            </div>
+            <button class="btn-update" style="padding:6px; font-size:12px;" onclick="saveAdminRegion()">ප්‍රදේශය තහවුරු කරන්න</button>
+        </div>
+
+        <!-- Dashboard Statistics -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
+            <div style="background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <p style="font-size: 10px; color: #666;">මුළු පැමිණිලි</p>
+                <h3 id="stat-total" style="font-size: 16px; color: #333;">0</h3>
+            </div>
+            <div style="background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <p style="font-size: 10px; color: #e67e22;">ක්‍රියාත්මක</p>
+                <h3 id="stat-progress" style="font-size: 16px; color: #e67e22;">0</h3>
+            </div>
+            <div style="background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <p style="font-size: 10px; color: #2e7d32;">විසඳූ</p>
+                <h3 id="stat-resolved" style="font-size: 16px; color: #2e7d32;">0</h3>
+            </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <input type="text" id="complaintSearchInput" placeholder="ස්ථානයකින් හෝ පරිශීලකයාගෙන් සොයන්න..." onkeyup="filterComplaints()" style="padding: 8px; margin-bottom: 6px; font-size: 12px;">
+            <select id="complaintStatusFilter" onchange="filterComplaints()" style="padding: 8px; font-size: 12px;">
+                <option value="all">සියලුම තත්ත්වයන්</option>
+                <option value="සලකා බලමින් සිටියි.">සලකා බලමින් සිටියි.</option>
+                <option value="පිරිසිදු කරමින් සිටියි.">පිරිසිදු කරමින් සිටියි.</option>
+                <option value="පිරිසිදු කළා.">පිරිසිදු කළා.</option>
+                <option value="අසත්‍ය තොරතුරකි.">අසත්‍ය තොරතුරකි.</option>
+            </select>
+        </div>
+
+        <h3 style="margin-bottom: 12px; color: var(--admin-dark); font-size: 16px;">📥 ලැබුණු ජනතා පැමිණිලි</h3> 
         <div id="admin-complaints-list"></div> 
         <div class="plant-decor">🌿 🍃 🌸 🍃 🌿</div> 
     </div>
 
-    <!-- Admin Tab 2: පැමිණිලි හා යෝජනා --> 
+    <!-- Admin Tab 2: යෝජනා --> 
     <div id="admin-tab2" class="tab-content"> 
         <h3 style="margin-bottom: 12px; color: var(--admin-dark);">👂 ජනතා සවන - යෝජනා හා අදහස්</h3> 
         <div id="admin-suggestions-list"></div> 
     </div>
 
-    <!-- Admin Tab 3: පොස්ටර් පාලනය --> 
+    <!-- Admin Tab 3: පෝස්ටර් පාලනය --> 
     <div id="admin-tab3" class="tab-content"> 
         <h3 style="margin-bottom: 12px; color: var(--admin-dark);">🖼️ පද්ධති පෝස්ටර් හා දැනුම්දීම් පාලනය</h3> 
         <div class="card"> 
             <h4>නව පෝස්ටරයක් / දැනුම්දීමක් එක් කරන්න</h4> 
-            <input type="text" id="poster-title" placeholder="ශීර්ෂය..." style="width:100%; padding:8px; margin:8px 0;"> 
-            <textarea id="poster-body" placeholder="විස්තරය..." style="width:100%; padding:8px; height:80px;"></textarea> 
+            <input type="text" id="poster-title" placeholder="ශීර්ෂය..."> 
+            <textarea id="poster-body" placeholder="විස්තරය..." style="height:80px;"></textarea> 
             <button class="btn-update" onclick="addPoster()">පෝස්ටරය පලකරන්න</button> 
         </div> 
         <div id="poster-manage-list"></div> 
     </div>
 </div>
 
-<!-- Admin Bottom Navigation -->
 <nav class="admin-nav"> 
     <button id="nav-admin-tab1" class="active" onclick="switchAdminTab('admin-tab1')">පැමිණිලි</button> 
     <button id="nav-admin-tab2" onclick="switchAdminTab('admin-tab2')">යෝජනා/සවන</button> 
@@ -393,6 +489,33 @@
         if(tabId === 'admin-tab1') loadAdminComplaints(); 
         if(tabId === 'admin-tab2') loadAdminSuggestions(); 
         if(tabId === 'admin-tab3') loadPosters(); 
+    }
+
+    function updateDistricts() {
+        const province = document.getElementById('admin-province').value;
+        const districtSelect = document.getElementById('admin-district');
+        districtSelect.innerHTML = '<option value="">දිස්ත්‍රික්කය...</option>';
+        let districts = [];
+        if (province === "Western") districts = ["කොළඹ", "ගම්පහ", "කළුතර"];
+        else if (province === "Central") districts = ["මහනුවර", "මාතලේ", "නුවරඑළිය"];
+        else if (province === "Southern") districts = ["ගාල්ල", "මාතර", "හම්බන්තොට"];
+        
+        districts.forEach(d => {
+            let opt = document.createElement('option');
+            opt.value = d; opt.innerHTML = d;
+            districtSelect.appendChild(opt);
+        });
+    }
+
+    window.saveAdminRegion = function() {
+        const region = {
+            province: document.getElementById('admin-province').value,
+            district: document.getElementById('admin-district').value,
+            dsDivision: document.getElementById('admin-ds-division').value,
+            ps: document.getElementById('admin-ps').value
+        };
+        localStorage.setItem('cleanLk_adminRegion', JSON.stringify(region));
+        alert("✅ ප්‍රදේශය සාර්ථකව සුරකින ලදී!");
     }
 </script>
 
