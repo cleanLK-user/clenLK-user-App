@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean.lk - User App</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #81c784;
+            --primary-dark: #1b5e20;
+            --accent: #ff9800;
+            --bg: #f1f8e9;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding-bottom: 70px;
+        }
+
+        /* Top Header */
+        header {
+            background: linear-gradient(135deg, #1b5e20, #4caf50);
+            color: white;
+            text-align: center;
+            padding: 15px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            font-size: 13px;
+            margin-top: 4px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        /* Plant Decor Elements */
+        .plant-bg {
+            background-image: radial-gradient(#81c784 10%, transparent 11%);
+            background-size: 20px 20px;
+        }
+
+        .decor-plants {
+            text-align: center;
+            font-size: 20px;
+            margin: 15px 0;
+            user-select: none;
+        }
+
+        /* Bottom Fixed Navigation Bar */
+        nav.bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #ddd;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 1000;
+        }
+
+        nav.bottom-nav button {
+            background: none;
+            border: none;
+            flex: 1;
+            height: 100%;
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        nav.bottom-nav button.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            background-color: #f9fbf9;
+        }
+
+        /* Container & Cards */
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--primary);
+            position: relative;
+        }
+
+        .card h3 {
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Form Inputs */
+        input[type="text"], textarea, input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-danger {
+            background: #e53935;
+        }
+
+        .btn-danger:hover {
+            background: #c62828;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #e65100;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .gps-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .status-pending { background-color: #ff9800; }
+        .status-cleaning { background-color: #2196f3; }
+        .status-resolved { background-color: #4caf50; }
+        .status-fake { background-color: #f44336; }
+
+        .image-preview {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .offline-notice {
+            background: #e1f5fe;
+            color: #0277bd;
+            font-size: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body class="plant-bg">
+
+<!-- Top Bar / Logo Header -->
+<header>
+    <div class="logo-container">
+        <div class="logo-icon">🍃</div>
+        <h1>Clean.lk</h1>
+    </div>
+    <p>පිරිසිදු නගරයක් - නිරෝගී හෙටක්</p>
+</header>
+
+<!-- Registration Screen -->
+<div id="registration-screen" class="container" style="margin-top: 30px;">
+    <div class="card" style="border-left-color: var(--primary-dark);">
+        <h3>👤 පරිශීලක ලියාපදිංචිය</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 10px;">ඇප් එක භාවිතා කිරීම සඳහා ඔබේ නම ඇතුළත් කරන්න.</p>
+        <input type="text" id="reg-name" placeholder="ඔබගේ සම්පූර්ණ නම ඇතුළත් කරන්න...">
+        <button class="btn" onclick="registerUser()">ලියාපදිංචි වී ඇතුළු වන්න ➔</button>
+    </div>
+</div>
+
+<!-- Main App Views -->
+<div id="main-app" style="display: none;">
+    
+    <div class="container">
+        
+        <!-- Tab 1: පැමිණිලි -->
+        <div id="tab1" class="tab-content active">
+            <div class="card">
+                <h3>📸 කසළ ගොඩෙහි ඡායාරූපය</h3>
+                <input type="file" id="comp-photo" accept="image/*" capture="camera" onchange="previewPhoto(this)">
+                <img id="photo-preview-img" class="image-preview" style="display:none;">
+                
+                <textarea id="comp-text" placeholder="පැමිණිල්ල පිළිබඳ විස්තරයක් (අවශ්‍ය නම් පමණක් ඇතුළත් කරන්න)..."></textarea>
+                
+                <div id="gps-indicator" class="gps-badge">📍 GPS: ස්ථානය සොයමින්...</div>
+
+                <div class="warning-box">
+                    ⚠️ <b>විශේෂ දැනුම්දීමයි:</b> අසත්‍ය පැමිණිල්ලක් ඉදිරිපත් කළහොත් නීතිමය පියවර ගන්නා අතර ඔබගේ ඇප් ගිණුම අත්හිටුවනු ලැබේ.
+                </div>
+
+                <div class="offline-notice">
+                    📶 සංඥා (Signal) නැති ස්ථානයකදී ද ඡායාරූපය සහ Location එක Save වන අතර, Signal ලැබුණු පසු Auto-upload වේ.
+                </div>
+
+                <button class="btn" style="margin-top: 15px;" onclick="submitComplaint()">📤 පැමිණිල්ල යොමු කරන්න</button>
+            </div>
+            <div class="decor-plants">🌿 🌸 🍃 🌼 🌿</div>
+        </div>
+
+        <!-- Tab 2: මගේ දත්ත -->
+        <div id="tab2" class="tab-content">
+            <h3 style="color: var(--primary-dark); margin-bottom: 10px;">📋 සජීවී පැමිණිලි තත්වය</h3>
+            <div id="active-complaints-list"></div>
+
+            <hr style="margin: 20px 0; border: none; border-top: 1px dashed #ccc;">
+
+            <h3 style="color: #555; margin-bottom: 10px;">📜 Resolved History (විසඳූ පැමිණිලි)</h3>
+            <div id="resolved-complaints-list"></div>
+        </div>
+
+        <!-- Tab 3: දැනුම්දීම් -->
+        <div id="tab3" class="tab-content">
+            <div class="card">
+                <h3>💡 සිතන්නට යමක්</h3>
+                <p style="font-size: 14px; line-height: 1.5; color: #444;">
+                    "අප පරිසරය ආරක්ෂා කළහොත් පරිසරය අපව ආරක්ෂා කරනු ඇත. ඔබ බැහැර කරන සෑම කසළ ප්ලාස්ටික් කැබැල්ලක්ම හෙට දිනයේ අනාගත පරපුරට තර්ජනයක් විය හැක."
+                </p>
+            </div>
+
+            <div class="card" style="border-left-color: #2196f3;">
+                <h3>📢 ශ්‍රමදාන හා පරිසර දැනුම්දීම්</h3>
+                <p style="font-size: 14px; color: #333;"><b>නගර සභා පරිසර පිරිසිදු කිරීමේ වැඩසටහන</b></p>
+                <p style="font-size: 13px; color: #666; margin-top: 5px;">ලබන සෙනසුරාදා පෙ.ව. 7.00 සිට ප්‍රධාන නගර පරිශ්‍රයේදී ශ්‍රමදාන ව්‍යාපාරයක් පැවැත්වේ. සියලු දෙනාගේ සහභාගීත්වය අපේක්ෂා කරමු.</p>
+            </div>
+
+            <div class="decor-plants">🌸 🌿 🌺 🍀</div>
+        </div>
+
+        <!-- Tab 4: සවන -->
+        <div id="tab4" class="tab-content">
+            <div class="card">
+                <h3>👂 ජනතා සවන</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                    පරිසරය පිරිසිදුව තබා ගැනීමට ඔබේ යෝජනා හා අදහස් අප වෙත යොමු කරන්න.
+                </p>
+                <textarea id="suggestion-text" placeholder="ඔබගේ යෝජනාව හෝ පැමිණිල්ල මෙහි සටහන් කරන්න..."></textarea>
+                <button class="btn" onclick="submitSuggestion()">💬 යෝජනාව යවන්න</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+        <button id="nav-tab1" class="active" onclick="switchTab('tab1')">පැමිණිලි</button>
+        <button id="nav-tab2" onclick="switchTab('tab2')">මගේ දත්ත</button>
+        <button id="nav-tab3" onclick="switchTab('tab3')">දැනුම්දීම්</button>
+        <button id="nav-tab4" onclick="switchTab('tab4')">සවන</button>
+    </nav>
+
+</div>
+
+<script>
+    let currentUser = "";
+    let userLocation = { lat: 6.9271, lng: 79.8612 };
+
+    function initGPS() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userLocation.lat = position.coords.latitude;
+                    userLocation.lng = position.coords.longitude;
+                    document.getElementById('gps-indicator').innerText = `📍 GPS: Location Captured (${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})`;
+                },
+                (error) => {
+                    alert("⚠️ GPS සක්‍රිය කරන්න! නියමිත ස්ථානය ලබා ගැනීමට GPS පහසුකම අවශ්‍ය වේ.");
+                    document.getElementById('gps-indicator').innerText = "📍 GPS: සක්‍රිය කර නැත (Default Location)";
+                }
+            );
+        } else {
+            alert("⚠️ ඔබගේ උපාංගය GPS සහාය නොදක්වයි.");
+        }
+    }
+
+    function registerUser() {
+        const nameInput = document.getElementById('reg-name').value.trim();
+        if(!nameInput) {
+            alert("කරුණාකර ඔබගේ නම ඇතුළත් කරන්න.");
+            return;
+        }
+
+        let blockedUsers = JSON.parse(localStorage.getItem('cleanlk_blocked_users') || "[]");
+        if(blockedUsers.includes(nameInput)) {
+            alert("🚫 අසත්‍ය තොරතුරු 3 වතාවකට වඩා යැවීම හේතුවෙන් ඔබගේ ගිණුම තාවකාලිකව Block කර ඇත!");
+            return;
+        }
+
+        currentUser = nameInput;
+        document.getElementById('registration-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        
+        initGPS();
+        loadUserComplaints();
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'cleanlk_complaints') {
+                loadUserComplaints();
+            }
+        });
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.bottom-nav button').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById('nav-' + tabId).classList.add('active');
+
+        if(tabId === 'tab2') {
+            loadUserComplaints();
+        }
+    }
+
+    function previewPhoto(input) {
+        const preview = document.getElementById('photo-preview-img');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function submitComplaint() {
+        const photoInput = document.getElementById('comp-photo');
+        const textInput = document.getElementById('comp-text').value.trim();
+
+        if (!photoInput.files || !photoInput.files[0]) {
+            alert("කරුණාකර කසල ගොඩෙහි ඡායාරූපයක් ලබා දෙන්න.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const complaintData = {
+                id: Date.now(),
+                user: currentUser,
+                photo: e.target.result,
+                text: textInput,
+                location: `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`,
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString(),
+                status: "සලකා බලමින් සිටියි.",
+                afterPhoto: null,
+                timestamp: Date.now()
+            };
+
+            let complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");
+            complaints.push(complaintData);
+            localStorage.setItem('cleanlk_complaints', JSON.stringify(complaints));
+
+            alert("✅ පැමිණිල්ල සාර්ථක ලෙස යොමු කරන ලදී!");
+
+            document.getElementById('comp-text').value = '';
+            document.getElementById('comp-photo').value = '';
+            document.getElementById('photo-preview-img').style.display = 'none';
+
+            loadUserComplaints();
+            switchTab('tab2');
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+    }
+
+    function loadUserComplaints() {
+        const complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");
+        const activeContainer = document.getElementById('active-complaints-list');
+        const resolvedContainer = document.getElementById('resolved-complaints-list');
+
+        activeContainer.innerHTML = "";
+        resolvedContainer.innerHTML = "";
+
+        const currentTime = Date.now();
+        let myComplaints = complaints.filter(c => c.user === currentUser);
+
+        if(myComplaints.length === 0) {
+            activeContainer.innerHTML = `<p style="font-size:13px; color:#888;">ඔබ විසින් තවමත් පැමිණිලි ඉදිරිපත් කර නැත.</p>`;
+            resolvedContainer.innerHTML = `<p style="font-size:13px; color:#888;">විසඳූ පැමිණිලි නොමැත.</p>`;
+            return;
+        }
+
+        myComplaints.forEach(item => {
+            const isResolved = item.status === "පිරිසිදු කළා.";
+            const is24HoursPassed = isResolved && (currentTime - item.timestamp > 24 * 60 * 60 * 1000);
+
+            let statusClass = "status-pending";
+            if(item.status === "පිරිසිදු කරමින් සිටියි.") statusClass = "status-cleaning";
+            if(item.status === "පිරිසිදු කළා.") statusClass = "status-resolved";
+            if(item.status === "අසත්‍ය තොරතුරකි.") statusClass = "status-fake";
+
+            const cardHTML = `
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                        <span class="status-badge ${statusClass}">${item.status}</span>
+                        <span style="font-size: 11px; color: #777;">${item.date} ${item.time}</span>
+                    </div>
+                    <img src="${item.photo}" class="image-preview">
+                    ${item.text ? `<p style="margin-top:8px; font-size:13px;"><b>විස්තරය:</b> ${item.text}</p>` : ''}
+                    <p style="font-size: 11px; color: #555; margin-top:5px;">📍 Location: ${item.location}</p>
+                    
+                    ${item.afterPhoto ? `
+                        <div style="margin-top:10px; background:#e8f5e9; padding:8px; border-radius:6px;">
+                            <p style="font-size:12px; color:#2e7d32; font-weight:bold;">✨ පිරිසිදු කළ පසු ඡායාරූපය (After Photo):</p>
+                            <img src="${item.afterPhoto}" class="image-preview">
+                        </div>
+                    ` : ''}
+
+                    ${item.status === "සලකා බලමින් සිටියි." ? `
+                        <button class="btn btn-danger" style="margin-top:10px; padding:6px 12px; font-size:12px;" onclick="cancelComplaint(${item.id})">❌ පැමිණිල්ල අස්කර ගන්න</button>
+                    ` : ''}
+                </div>
+            `;
+
+            if(isResolved) {
+                resolvedContainer.innerHTML += cardHTML;
+            }
+
+            if(!is24HoursPassed) {
+                activeContainer.innerHTML += cardHTML;
+            }
+        });
+    }
+
+    function cancelComplaint(id) {
+        if(confirm("ඔබට මෙම පැමිණිල්ල ඉවත් කර ගැනීමට අවශ්‍යද?")) {
+            let complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");
+            complaints = complaints.filter(c => c.id !== id);
+            localStorage.setItem('cleanlk_complaints', JSON.stringify(complaints));
+            loadUserComplaints();
+        }
+    }
+
+    function submitSuggestion() {
+        const text = document.getElementById('suggestion-text').value.trim();
+        if(!text) {
+            alert("කරුණාකර ඔබගේ අදහස සටහන් කරන්න.");
+            return;
+        }
+
+        let suggestions = JSON.parse(localStorage.getItem('cleanlk_suggestions') || "[]");
+        suggestions.push({
+            user: currentUser,
+            text: text,
+            date: new Date().toLocaleDateString(),
+            time: new Date().toLocaleTimeString()
+        });
+
+        localStorage.setItem('cleanlk_suggestions', JSON.stringify(suggestions));
+        alert("✅ ඔබගේ යෝජනාව සාර්ථකව ජනතා සවන වෙත යොමු කරන ලදී!");
+        document.getElementById('suggestion-text').value = '';
+    }
+</script>
+</body>
+</html>

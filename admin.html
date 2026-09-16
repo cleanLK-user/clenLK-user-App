@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="si"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Clean.lk - Admin Panel</title>    <style>        :root {            --admin-dark: #1e272e;            --admin-card: #ffffff;            --primary: #2e7d32;            --accent: #d32f2f;            --bg: #f5f6fa;        }
+        * {            box-sizing: border-box;            margin: 0;            padding: 0;            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;        }
+        body {            background-color: var(--bg);            color: #2c3e50;            padding-bottom: 70px;        }
+        /* Header Bar */        header {            background: var(--admin-dark);            color: white;            text-align: center;            padding: 15px;            box-shadow: 0 4px 6px rgba(0,0,0,0.1);        }
+        header h1 {            font-size: 22px;            display: flex;            align-items: center;            justify-content: center;            gap: 10px;        }
+        header p {            font-size: 12px;            color: #81c784;            margin-top: 4px;        }
+        /* Container */        .container {            max-width: 600px;            margin: 0 auto;            padding: 15px;        }
+        /* Fixed Navigation */        nav.admin-nav {            position: fixed;            bottom: 0;            left: 0;            right: 0;            height: 60px;            background: white;            display: flex;            justify-content: space-around;            align-items: center;            border-top: 2px solid #ddd;            z-index: 1000;        }
+        nav.admin-nav button {            background: none;            border: none;            flex: 1;            height: 100%;            font-size: 13px;            font-weight: bold;            color: #555;            cursor: pointer;            transition: all 0.2s;            border-bottom: 3px solid transparent;        }
+        nav.admin-nav button.active {            color: var(--primary);            border-bottom: 3px solid var(--primary);            background: #f0fdf4;        }
+        .tab-content {            display: none;        }
+        .tab-content.active {            display: block;        }
+        .card {            background: var(--admin-card);            border-radius: 10px;            padding: 16px;            margin-bottom: 15px;            box-shadow: 0 4px 10px rgba(0,0,0,0.05);            border-left: 5px solid var(--primary);        }
+        .image-preview {            width: 100%;            max-height: 220px;            object-fit: cover;            border-radius: 6px;            margin: 8px 0;        }
+        select, button.btn-update {            width: 100%;            padding: 10px;            margin-top: 8px;            border-radius: 6px;            border: 1px solid #ccc;            font-size: 14px;        }
+        button.btn-update {            background: var(--primary);            color: white;            font-weight: bold;            border: none;            cursor: pointer;        }
+        button.btn-update:hover {            background: #1b5e20;        }
+        .warning-badge {            background: #ffebee;            color: #c62828;            padding: 5px 10px;            border-radius: 4px;            font-size: 11px;            font-weight: bold;            display: inline-block;            margin-top: 5px;        }
+        .plant-decor {            text-align: center;            margin: 15px 0;            opacity: 0.7;        }    </style></head><body>
+
+<!-- Password Protection Script -->
+<script>
+    const adminPassword = "osha@2011"; // 
+    let enteredPassword = prompt("පරිපාලක (Admin) මුරපදය ඇතුළත් කරන්න:");
+    
+    if (enteredPassword !== adminPassword) {
+        alert("වැරදි මුරපදයක්! ඔබව මුල් පිටුවට හරවන ලදී.");
+        window.location.href = "index.html"; 
+    }
+</script>
+
+<header>    <h1>🍃 Clean.lk Admin Panel</h1>    <p>පරිපාලන මෙහෙයුම් පද්ධතිය</p></header>
+<div class="container">
+    <!-- Admin Tab 1: ජනතා පැමිණිලි -->    <div id="admin-tab1" class="tab-content active">        <h3 style="margin-bottom: 12px; color: var(--admin-dark);">📥 ලැබුණු ජනතා පැමිණිලි</h3>        <div id="admin-complaints-list"></div>        <div class="plant-decor">🌿 🍃 🌸 🍃 🌿</div>    </div>
+    <!-- Admin Tab 2: පැමිණිලි හා යෝජනා -->    <div id="admin-tab2" class="tab-content">        <h3 style="margin-bottom: 12px; color: var(--admin-dark);">👂 ජනතා සවන - යෝජනා හා අදහස්</h3>        <div id="admin-suggestions-list"></div>    </div>
+    <!-- Admin Tab 3: පොස්ටර් පාලනය -->    <div id="admin-tab3" class="tab-content">        <h3 style="margin-bottom: 12px; color: var(--admin-dark);">🖼️ පද්ධති පෝස්ටර් හා දැනුම්දීම් පාලනය</h3>        <div class="card">            <h4>නව පෝස්ටරයක් / දැනුම්දීමක් එක් කරන්න</h4>            <input type="text" id="poster-title" placeholder="ශීර්ෂය..." style="width:100%; padding:8px; margin:8px 0;">            <textarea id="poster-body" placeholder="විස්තරය..." style="width:100%; padding:8px; height:80px;"></textarea>            <button class="btn-update" onclick="addPoster()">පෝස්ටරය පලකරන්න</button>        </div>        <div id="poster-manage-list"></div>    </div>
+</div>
+<!-- Admin Bottom Navigation --><nav class="admin-nav">    <button id="nav-admin-tab1" class="active" onclick="switchAdminTab('admin-tab1')">පැමිණිලි</button>    <button id="nav-admin-tab2" onclick="switchAdminTab('admin-tab2')">යෝජනා/සවන</button>    <button id="nav-admin-tab3" onclick="switchAdminTab('admin-tab3')">පෝස්ටර්</button></nav>
+<script>    function switchAdminTab(tabId) {        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));        document.querySelectorAll('.admin-nav button').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');        document.getElementById('nav-' + tabId).classList.add('active');
+
+        if(tabId === 'admin-tab1') loadAdminComplaints();        if(tabId === 'admin-tab2') loadAdminSuggestions();        if(tabId === 'admin-tab3') loadPosters();    }
+
+    function loadAdminComplaints() {        const complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");        const warnings = JSON.parse(localStorage.getItem('cleanlk_warnings') || "{}");        const container = document.getElementById('admin-complaints-list');        container.innerHTML = "";
+
+        if(complaints.length === 0) {            container.innerHTML = "<p style='color:#777;'>කිසිදු පැමිණිල්ලක් ලැබී නැත.</p>";            return;        }
+
+        complaints.forEach((item, index) => {            const userWarnings = warnings[item.user] || 0;
+
+            container.innerHTML += `                <div class="card">                    <p><b>👤 User:</b> ${item.user} <span class="warning-badge">Warnings: ${userWarnings}/3</span></p>                    <p style="font-size:12px; color:#555;"><b>📅 දිනය/වේලාව:</b> ${item.date} ${item.time}</p>                    <p style="font-size:12px; color:#555;"><b>📍 Location:</b> ${item.location}</p>                    <img src="${item.photo}" class="image-preview">                    <p style="font-size:13px;"><b>විස්තරය:</b> ${item.text || 'නැත'}</p>                                        <hr style="margin:10px 0;">
+
+                    <label style="font-size:12px; font-weight:bold;">⚙️ ක්‍රියාමාර්ගය තෝරන්න:</label>                    <select id="status-select-${index}" onchange="onStatusSelectChange(${index})">                        <option value="සලකා බලමින් සිටියි." ${item.status==='සලකා බලමින් සිටියි.'?'selected':''}>3. සලකා බලමින් සිටියි.</option>                        <option value="පිරිසිදු කරමින් සිටියි." ${item.status==='පිරිසිදු කරමින් සිටියි.'?'selected':''}>1. පිරිසිදු කරමින් සිටියි.</option>                        <option value="පිරිසිදු කළා." ${item.status==='පිරිසිදු කළා.'?'selected':''}>2. පිරිසිදු කළා.</option>                        <option value="අසත්‍ය තොරතුරකි." ${item.status==='අසත්‍ය තොරතුරකි.'?'selected':''}>4. අසත්‍ය තොරතුරකි.</option>                    </select>
+
+                    <div id="after-photo-upload-sec-${index}" style="display:${item.status==='පිරිසිදු කළා.'?'block':'none'}; margin-top:10px;">                        <label style="font-size:12px; color:#2e7d32; font-weight:bold;">📸 After Photo (අනිවාර්යයි):</label>                        <input type="file" id="after-photo-input-${index}" accept="image/*">                        ${item.afterPhoto ? `<img src="${item.afterPhoto}" class="image-preview" style="max-height:100px;">` : ''}                    </div>
+
+                    <button class="btn-update" onclick="updateComplaintStatus(${index})">ක්‍රියාමාර්ගය යාවත්කාලීන කරන්න</button>                </div>            `;        });    }
+
+    function onStatusSelectChange(index) {        const selectedVal = document.getElementById(`status-select-${index}`).value;        const uploadSec = document.getElementById(`after-photo-upload-sec-${index}`);        uploadSec.style.display = (selectedVal === "පිරිසිදු කළා.") ? "block" : "none";    }
+
+    function updateComplaintStatus(index) {        let complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");        const selectedStatus = document.getElementById(`status-select-${index}`).value;        const user = complaints[index].user;
+
+        if (selectedStatus === "පිරිසිදු කළා.") {            const photoInput = document.getElementById(`after-photo-input-${index}`);            if (!photoInput.files[0] && !complaints[index].afterPhoto) {                alert("⚠️ පැමිණිල්ල 'පිරිසිදු කළා' ලෙස සටහන් කිරීමට නම් පිරිසිදු කළ පසු ඡායාරූපයක් (After Photo) උඩුගත කිරීම අනිවාර්ය වේ!");                return;            }
+
+            if (photoInput.files[0]) {                const reader = new FileReader();                reader.onload = function(e) {                    complaints[index].afterPhoto = e.target.result;                    saveStatusChange(complaints, index, selectedStatus);                };                reader.readAsDataURL(photoInput.files[0]);                return;            }        }                 
+
+        if (selectedStatus === "අසත්‍ය තොරතුරකි.") {            handleFakeInformation(user);        }
+
+        saveStatusChange(complaints, index, selectedStatus);    }
+
+    function saveStatusChange(complaints, index, status) {        complaints[index].status = status;        complaints[index].timestamp = Date.now();        localStorage.setItem('cleanlk_complaints', JSON.stringify(complaints));        alert("✅ ක්‍රියාමාර්ගය සාර්ථකව යාවත්කාලීන විය! (User App එකෙහිද සජීවීව වෙනස් වේ)");        loadAdminComplaints();    }
+
+    function handleFakeInformation(username) {        let warnings = JSON.parse(localStorage.getItem('cleanlk_warnings') || "{}");        warnings[username] = (warnings[username] || 0) + 1;        localStorage.setItem('cleanlk_warnings', JSON.stringify(warnings));
+
+        if (warnings[username] >= 3) {            let blockedUsers = JSON.parse(localStorage.getItem('cleanlk_blocked_users') || "[]");            if (!blockedUsers.includes(username)) {                blockedUsers.push(username);                localStorage.setItem('cleanlk_blocked_users', JSON.stringify(blockedUsers));            }            alert(`⛔ '${username}' නැමැති පරිශීලකයා අසත්‍ය තොරතුරු 3 වතාවක් ලබා දී ඇති බැවින් ගිණුම Block කරන ලදී!`);        } else {            alert(`⚠️ '${username}' වෙත Warning පණිවිඩයක් යැවුණි. (වත්මන් Warnings ගණන: ${warnings[username]}/3)`);        }    }
+
+    function loadAdminSuggestions() {        const suggestions = JSON.parse(localStorage.getItem('cleanlk_suggestions') || "[]");        const container = document.getElementById('admin-suggestions-list');        container.innerHTML = "";
+
+        if(suggestions.length === 0) {            container.innerHTML = "<p style='color:#777;'>යෝජනා නොමැත.</p>";            return;        }
+
+        suggestions.forEach(item => {            container.innerHTML += `                <div class="card">                    <p><b>👤 පරිශීලක:</b> ${item.user}</p>                    <p style="font-size:12px; color:#555;"><b>📅 දිනය:</b> ${item.date} ${item.time}</p>                    <p style="margin-top:8px; font-size:14px;"><b>💡 යෝජනාව:</b> ${item.text}</p>                </div>            `;        });    }
+
+    function addPoster() {        const title = document.getElementById('poster-title').value.trim();        const body = document.getElementById('poster-body').value.trim();                if(!title || !body) {            alert("සියලු විස්තර පුරවන්න.");            return;        }
+
+        let posters = JSON.parse(localStorage.getItem('cleanlk_posters') || "[]");        posters.push({ id: Date.now(), title, body });        localStorage.setItem('cleanlk_posters', JSON.stringify(posters));
+
+        alert("පෝස්ටරය එක් කරන ලදී!");        document.getElementById('poster-title').value = '';        document.getElementById('poster-body').value = '';        loadPosters();    }
+
+    function loadPosters() {        const posters = JSON.parse(localStorage.getItem('cleanlk_posters') || "[]");        const container = document.getElementById('poster-manage-list');        container.innerHTML = "";
+
+        posters.forEach(item => {            container.innerHTML += `                <div class="card">                    <h4>${item.title}</h4>                    <p style="font-size:13px; color:#555;">${item.body}</p>                    <button class="btn-update" style="background:#e53935; margin-top:8px;" onclick="deletePoster(${item.id})">🗑️ ඉවත් කරන්න</button>                </div>            `;        });
+    }
+
+    function deletePoster(id) {        let posters = JSON.parse(localStorage.getItem('cleanlk_posters') || "[]");        posters = posters.filter(p => p.id !== id);        localStorage.setItem('cleanlk_posters', JSON.stringify(posters));        loadPosters();    }
+
+    window.addEventListener('storage', (e) => {        if (e.key === 'cleanlk_complaints') {            loadAdminComplaints();        }    });
+
+    loadAdminComplaints();</script></body></html>
