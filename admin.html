@@ -133,7 +133,7 @@
         }
     </style>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (PC සහ Phone අතර දත්ත සජීවීව Share වීමට) -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
       import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -154,6 +154,7 @@
 
       let allComplaintsData = [];
 
+      // පැමිණිලි Firebase වෙතින් ලබාගැනීම (PC සහ Phone දෙකෙන්ම එකම දත්ත පෙනේ)
       window.loadAdminComplaints = async function() {
           const container = document.getElementById('admin-complaints-list');
           container.innerHTML = "<p style='color:#777;'>පැමිණිලි ලබාගනිමින් පවතී...</p>";
@@ -196,10 +197,11 @@
           data.forEach((item) => {
               const docId = item.id;
               
+              // Location එක ක්ලික් කළ විට Map එකෙන් විවෘත වන සේ සකස් කිරීම
               let locationHtml = '';
               if (item.location) {
                   if (item.location.startsWith('http')) {
-                      locationHtml = `<p style="font-size:12px; color:#555;"><b>📍 Location:</b> <a href="${item.location}" target="_blank" style="color: #007bff; text-decoration: underline;">სිතියමෙන් බලන්න (Open Map) ↗</a></p>`;
+                      locationHtml = `<p style="font-size:12px; color:#555;"><b>📍 Location:</b> <a href="${item.location}" target="_blank" style="color: #007bff; text-decoration: underline;">සිතියමෙන් බලන්න (Open Map) ↗</a></p>`;
                   } else {
                       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`;
                       locationHtml = `<p style="font-size:12px; color:#555;"><b>📍 Location:</b> <a href="${mapUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${item.location} (Map එකෙන් විවෘත කරන්න) ↗</a></p>`;
@@ -398,27 +400,6 @@
 <div class="container">
     <!-- Admin Tab 1: ජනතා පැමිණිලි --> 
     <div id="admin-tab1" class="tab-content active"> 
-        
-        <!-- Region Selector Setup -->
-        <div class="card" style="margin-bottom: 15px; background: #fff; border-left: 5px solid #2e7d32;">
-            <h4 style="font-size: 14px; margin-bottom: 8px;">📍 මෙහෙයුම් ප්‍රදේශය තෝරන්න</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                <select id="admin-province" onchange="updateDistricts()" style="padding:6px; font-size:12px;">
-                    <option value="">පළාත තෝරන්න...</option>
-                    <option value="Western">බස්නාහිර පළාත</option>
-                    <option value="Central">මධ්‍යම පළාත</option>
-                    <option value="Southern">දකුණු පළාත</option>
-                </select>
-                <select id="admin-district" style="padding:6px; font-size:12px;">
-                    <option value="">දිස්ත්‍රික්කය...</option>
-                </select>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                <input type="text" id="admin-ds-division" placeholder="ප්‍රා. ලේකම් කොට්ඨාසය" style="padding:6px; font-size:12px;">
-                <input type="text" id="admin-ps" placeholder="ප්‍රාදේශීය සභාව" style="padding:6px; font-size:12px;">
-            </div>
-            <button class="btn-update" style="padding:6px; font-size:12px;" onclick="saveAdminRegion()">ප්‍රදේශය තහවුරු කරන්න</button>
-        </div>
 
         <!-- Dashboard Statistics -->
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
@@ -489,33 +470,6 @@
         if(tabId === 'admin-tab1') loadAdminComplaints(); 
         if(tabId === 'admin-tab2') loadAdminSuggestions(); 
         if(tabId === 'admin-tab3') loadPosters(); 
-    }
-
-    function updateDistricts() {
-        const province = document.getElementById('admin-province').value;
-        const districtSelect = document.getElementById('admin-district');
-        districtSelect.innerHTML = '<option value="">දිස්ත්‍රික්කය...</option>';
-        let districts = [];
-        if (province === "Western") districts = ["කොළඹ", "ගම්පහ", "කළුතර"];
-        else if (province === "Central") districts = ["මහනුවර", "මාතලේ", "නුවරඑළිය"];
-        else if (province === "Southern") districts = ["ගාල්ල", "මාතර", "හම්බන්තොට"];
-        
-        districts.forEach(d => {
-            let opt = document.createElement('option');
-            opt.value = d; opt.innerHTML = d;
-            districtSelect.appendChild(opt);
-        });
-    }
-
-    window.saveAdminRegion = function() {
-        const region = {
-            province: document.getElementById('admin-province').value,
-            district: document.getElementById('admin-district').value,
-            dsDivision: document.getElementById('admin-ds-division').value,
-            ps: document.getElementById('admin-ps').value
-        };
-        localStorage.setItem('cleanLk_adminRegion', JSON.stringify(region));
-        alert("✅ ප්‍රදේශය සාර්ථකව සුරකින ලදී!");
     }
 </script>
 
