@@ -261,6 +261,240 @@
             margin-top: 5px;
         }
     </style>
+
+    <!-- Firebase App & Firestore SDKs -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+      import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+      // ඔබගේ නිවැරදි Firebase Config විස්තර
+      const firebaseConfig = {
+        apiKey: "AIzaSyDtOiVEWrArAyQgqvqsU2TVI2cdTHCEisO",
+        authDomain: "cleanlk-76d7a.firebaseapp.com",
+        projectId: "cleanlk-76d7a",
+        storageBucket: "cleanlk-76d7a.firebasestorage.app",
+        messagingSenderId: "411277096952",
+        appId: "1:411277096952:web:dc356b1c5c88d847b4c80d",
+        measurementId: "G-E2E1L4LH88"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      let currentUser = "";
+      let userLocation = { lat: 6.9271, lng: 79.8612 };
+      let unsubscribeComplaints = null;
+
+      window.initGPS = function() {
+          if ("geolocation" in navigator) {
+              navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                      userLocation.lat = position.coords.latitude;
+                      userLocation.lng = position.coords.longitude;
+                      const gpsEl = document.getElementById('gps-indicator');
+                      if(gpsEl) {
+                          gpsEl.innerText = `📍 GPS: Location Captured (${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})`;
+                      }
+                  },
+                  (error) => {
+                      alert("⚠️ GPS සක්‍රිය කරන්න! නියමිත ස්ථානය ලබා ගැනීමට GPS පහසුකම අවශ්‍ය වේ.");
+                      const gpsEl = document.getElementById('gps-indicator');
+                      if(gpsEl) gpsEl.innerText = "📍 GPS: සක්‍රිය කර නැත (Default Location)";
+                  }
+              );
+          } else {
+              alert("⚠️ ඔබගේ උපාංගය GPS සහාය නොදක්වයි.");
+          }
+      }
+
+      window.registerUser = function() {
+          const nameInput = document.getElementById('reg-name').value.trim();
+          if(!nameInput) {
+              alert("කරුණාකර ඔබගේ නම ඇතුළත් කරන්න.");
+              return;
+          }
+
+          currentUser = nameInput;
+          document.getElementById('registration-screen').style.display = 'none';
+          document.getElementById('main-app').style.display = 'block';
+          
+          window.initGPS();
+          setupRealtimeComplaints();
+          loadPosters();
+      }
+
+      // Realtime listener for complaints belonging to current user
+      function setupRealtimeComplaints() {
+          const activeContainer = document.getElementById('active-complaints-list');
+          const resolvedContainer = document.getElementById('resolved-complaints-list');
+
+          // Firestore query for current user's complaints
+          const q = query(collection(db, "complaints"), where("user", "==", currentUser));
+
+          if (unsubscribeComplaints) unsubscribeComplaints();
+
+          unsubscribeComplaints = onSnapshot(q, (querySnapshot) => {
+              activeContainer.innerHTML = "";
+              resolvedContainer.innerHTML = "";
+
+              if(querySnapshot.empty) {
+                  activeContainer.innerHTML = `<p style="font-size:13px; color:#888;">ඔබ විසින් තවමත් පැමිණිලි ඉදිරිපත් කර නැත.</p>`;
+                  resolvedContainer.innerHTML = `<p style="font-size:13px; color:#888;">විසඳූ පැමිණිලි නොමැත.</p>`;
+                  return;
+              }
+
+              const currentTime = Date.now();
+              let hasActive = false;
+              let hasResolved = false;
+
+              querySnapshot.forEach((documentSnap) => {
+                  const item = documentSnap.data();
+                  const docId = documentSnap.id;
+                  const isResolved = item.status === "පිරිසිදු කළා.";
+                  const is24HoursPassed = isResolved && (currentTime - (item.timestamp || 0) > 24 * 60 * 60 * 1000);
+
+                  let statusClass = "status-pending";
+                  if(item.status === "පිරිසිදු කරමින් සිටියි.") statusClass = "status-cleaning";
+                  if(item.status === "පිරිසිදු කළා.") statusClass = "status-resolved";
+                  if(item.status === "අසත්‍ය තොරතුරකි.") statusClass = "status-fake";
+
+                  const cardHTML = `
+                      <div class="card">
+                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                              <span class="status-badge ${statusClass}">${item.status}</span>
+                              <span style="font-size: 11px; color: #777;">${item.date || ''} ${item.time || ''}</span>
+                          </div>
+                          ${item.photo ? `<img src="${item.photo}" class="image-preview">` : ''}
+                          ${item.text ? `<p style="margin-top:8px; font-size:13px;"><b>විස්තරය:</b> ${item.text}</p>` : ''}
+                          <p style="font-size: 11px; color: #555; margin-top:5px;">📍 Location: ${item.location || ''}</p>
+                          
+                          ${item.afterPhoto ? `
+                              <div style="margin-top:10px; background:#e8f5e9; padding:8px; border-radius:6px;">
+                                  <p style="font-size:12px; color:#2e7d32; font-weight:bold;">✨ පිරිසිදු කළ පසු ඡායාරූපය (After Photo):</p>
+                                  <img src="${item.afterPhoto}" class="image-preview">
+                              </div>
+                          ` : ''}
+
+                          ${item.status === "සලකා බලමින් සිටියි." ? `
+                              <button class="btn btn-danger" style="margin-top:10px; padding:6px 12px; font-size:12px;" onclick="cancelComplaint('${docId}')">❌ පැමිණිල්ල අස්කර ගන්න</button>
+                          ` : ''}
+                      </div>
+                  `;
+
+                  if(isResolved) {
+                      resolvedContainer.innerHTML += cardHTML;
+                      hasResolved = true;
+                  }
+
+                  if(!is24HoursPassed) {
+                      activeContainer.innerHTML += cardHTML;
+                      hasActive = true;
+                  }
+              });
+
+              if(!hasActive) activeContainer.innerHTML = `<p style="font-size:13px; color:#888;">සක්‍රීය පැමිණිලි නොමැත.</p>`;
+              if(!hasResolved) resolvedContainer.innerHTML = `<p style="font-size:13px; color:#888;">විසඳූ පැමිණිලි නොමැත.</p>`;
+          });
+      }
+
+      window.submitComplaint = async function() {
+          const photoInput = document.getElementById('comp-photo');
+          const textInput = document.getElementById('comp-text').value.trim();
+
+          if (!photoInput.files || !photoInput.files[0]) {
+              alert("කරුණාකර කසල ගොඩෙහි ඡායාරූපයක් ලබා දෙන්න.");
+              return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = async function(e) {
+              try {
+                  const complaintData = {
+                      user: currentUser,
+                      photo: e.target.result,
+                      text: textInput,
+                      location: `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`,
+                      date: new Date().toLocaleDateString(),
+                      time: new Date().toLocaleTimeString(),
+                      status: "සලකා බලමින් සිටියි.",
+                      afterPhoto: null,
+                      timestamp: Date.now()
+                  };
+
+                  await addDoc(collection(db, "complaints"), complaintData);
+                  alert("✅ පැමිණිල්ල සාර්ථක ලෙස යොමු කරන ලදී!");
+
+                  document.getElementById('comp-text').value = '';
+                  document.getElementById('comp-photo').value = '';
+                  document.getElementById('photo-preview-img').style.display = 'none';
+
+                  switchTab('tab2');
+              } catch (err) {
+                  console.error("Error adding complaint: ", err);
+                  alert("පැමිණිල්ල යැවීමේදී දෝෂයක් ඇතිවිය.");
+              }
+          };
+          reader.readAsDataURL(photoInput.files[0]);
+      }
+
+      window.cancelComplaint = async function(docId) {
+          if(confirm("ඔබට මෙම පැමිණිල්ල ඉවත් කර ගැනීමට අවශ්‍යද?")) {
+              try {
+                  await deleteDoc(doc(db, "complaints", docId));
+                  alert("පැමිණිල්ල ඉවත් කරන ලදී.");
+              } catch (err) {
+                  console.error("Error deleting: ", err);
+              }
+          }
+      }
+
+      window.submitSuggestion = async function() {
+          const text = document.getElementById('suggestion-text').value.trim();
+          if(!text) {
+              alert("කරුණාකර ඔබගේ අදහස සටහන් කරන්න.");
+              return;
+          }
+
+          try {
+              await addDoc(collection(db, "suggestions"), {
+                  user: currentUser,
+                  text: text,
+                  date: new Date().toLocaleDateString(),
+                  time: new Date().toLocaleTimeString(),
+                  timestamp: Date.now()
+              });
+              alert("✅ ඔබගේ යෝජනාව සාර්ථකව ජනතා සවන වෙත යොමු කරන ලදී!");
+              document.getElementById('suggestion-text').value = '';
+          } catch(e) {
+              console.error("Error adding suggestion:", e);
+              alert("යෝජනාව යැවීමේදී දෝෂයක් ඇතිවිය.");
+          }
+      }
+
+      async function loadPosters() {
+          const container = document.getElementById('user-posters-container');
+          if(!container) return;
+          try {
+              const querySnapshot = await getDocs(collection(db, "posters"));
+              if(!querySnapshot.empty) {
+                  let html = '';
+                  querySnapshot.forEach((docSnap) => {
+                      const item = docSnap.data();
+                      html += `
+                          <div class="card" style="border-left-color: #2196f3;">
+                              <h3>📢 ${item.title}</h3>
+                              <p style="font-size: 13px; color: #333; margin-top: 5px;">${item.body}</p>
+                          </div>
+                      `;
+                  });
+                  // keep default notices and prepend/append new ones
+                  container.innerHTML += html;
+              }
+          } catch(e) {
+              console.error("Error loading posters:", e);
+          }
+      }
+    </script>
 </head>
 <body class="plant-bg">
 
@@ -304,7 +538,7 @@
                 </div>
 
                 <div class="offline-notice">
-                    📶 සංඥා (Signal) නැති ස්ථානයකදී ද ඡායාරූපය සහ Location එක Save වන අතර, Signal ලැබුණු පසු Auto-upload වේ.
+                    📶 සංඥා (Signal) ඇති විට මෙම පැමිණිල්ල සජීවීව Admin වෙත යොමු වේ.
                 </div>
 
                 <button class="btn" style="margin-top: 15px;" onclick="submitComplaint()">📤 පැමිණිල්ල යොමු කරන්න</button>
@@ -324,7 +558,7 @@
         </div>
 
         <!-- Tab 3: දැනුම්දීම් -->
-        <div id="tab3" class="tab-content">
+        <div id="tab3" class="tab-content" id="user-posters-container">
             <div class="card">
                 <h3>💡 සිතන්නට යමක්</h3>
                 <p style="font-size: 14px; line-height: 1.5; color: #444;">
@@ -338,6 +572,7 @@
                 <p style="font-size: 13px; color: #666; margin-top: 5px;">ලබන සෙනසුරාදා පෙ.ව. 7.00 සිට ප්‍රධාන නගර පරිශ්‍රයේදී ශ්‍රමදාන ව්‍යාපාරයක් පැවැත්වේ. සියලු දෙනාගේ සහභාගීත්වය අපේක්ෂා කරමු.</p>
             </div>
 
+            <div id="user-posters-container"></div>
             <div class="decor-plants">🌸 🌿 🌺 🍀</div>
         </div>
 
@@ -366,64 +601,12 @@
 </div>
 
 <script>
-    let currentUser = "";
-    let userLocation = { lat: 6.9271, lng: 79.8612 };
-
-    function initGPS() {
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    userLocation.lat = position.coords.latitude;
-                    userLocation.lng = position.coords.longitude;
-                    document.getElementById('gps-indicator').innerText = `📍 GPS: Location Captured (${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})`;
-                },
-                (error) => {
-                    alert("⚠️ GPS සක්‍රිය කරන්න! නියමිත ස්ථානය ලබා ගැනීමට GPS පහසුකම අවශ්‍ය වේ.");
-                    document.getElementById('gps-indicator').innerText = "📍 GPS: සක්‍රිය කර නැත (Default Location)";
-                }
-            );
-        } else {
-            alert("⚠️ ඔබගේ උපාංගය GPS සහාය නොදක්වයි.");
-        }
-    }
-
-    function registerUser() {
-        const nameInput = document.getElementById('reg-name').value.trim();
-        if(!nameInput) {
-            alert("කරුණාකර ඔබගේ නම ඇතුළත් කරන්න.");
-            return;
-        }
-
-        let blockedUsers = JSON.parse(localStorage.getItem('cleanlk_blocked_users') || "[]");
-        if(blockedUsers.includes(nameInput)) {
-            alert("🚫 අසත්‍ය තොරතුරු 3 වතාවකට වඩා යැවීම හේතුවෙන් ඔබගේ ගිණුම තාවකාලිකව Block කර ඇත!");
-            return;
-        }
-
-        currentUser = nameInput;
-        document.getElementById('registration-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        
-        initGPS();
-        loadUserComplaints();
-
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'cleanlk_complaints') {
-                loadUserComplaints();
-            }
-        });
-    }
-
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.bottom-nav button').forEach(el => el.classList.remove('active'));
 
         document.getElementById(tabId).classList.add('active');
         document.getElementById('nav-' + tabId).classList.add('active');
-
-        if(tabId === 'tab2') {
-            loadUserComplaints();
-        }
     }
 
     function previewPhoto(input) {
@@ -436,134 +619,6 @@
             }
             reader.readAsDataURL(input.files[0]);
         }
-    }
-
-    function submitComplaint() {
-        const photoInput = document.getElementById('comp-photo');
-        const textInput = document.getElementById('comp-text').value.trim();
-
-        if (!photoInput.files || !photoInput.files[0]) {
-            alert("කරුණාකර කසල ගොඩෙහි ඡායාරූපයක් ලබා දෙන්න.");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const complaintData = {
-                id: Date.now(),
-                user: currentUser,
-                photo: e.target.result,
-                text: textInput,
-                location: `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`,
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString(),
-                status: "සලකා බලමින් සිටියි.",
-                afterPhoto: null,
-                timestamp: Date.now()
-            };
-
-            let complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");
-            complaints.push(complaintData);
-            localStorage.setItem('cleanlk_complaints', JSON.stringify(complaints));
-
-            alert("✅ පැමිණිල්ල සාර්ථක ලෙස යොමු කරන ලදී!");
-
-            document.getElementById('comp-text').value = '';
-            document.getElementById('comp-photo').value = '';
-            document.getElementById('photo-preview-img').style.display = 'none';
-
-            loadUserComplaints();
-            switchTab('tab2');
-        };
-        reader.readAsDataURL(photoInput.files[0]);
-    }
-
-    function loadUserComplaints() {
-        const complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");
-        const activeContainer = document.getElementById('active-complaints-list');
-        const resolvedContainer = document.getElementById('resolved-complaints-list');
-
-        activeContainer.innerHTML = "";
-        resolvedContainer.innerHTML = "";
-
-        const currentTime = Date.now();
-        let myComplaints = complaints.filter(c => c.user === currentUser);
-
-        if(myComplaints.length === 0) {
-            activeContainer.innerHTML = `<p style="font-size:13px; color:#888;">ඔබ විසින් තවමත් පැමිණිලි ඉදිරිපත් කර නැත.</p>`;
-            resolvedContainer.innerHTML = `<p style="font-size:13px; color:#888;">විසඳූ පැමිණිලි නොමැත.</p>`;
-            return;
-        }
-
-        myComplaints.forEach(item => {
-            const isResolved = item.status === "පිරිසිදු කළා.";
-            const is24HoursPassed = isResolved && (currentTime - item.timestamp > 24 * 60 * 60 * 1000);
-
-            let statusClass = "status-pending";
-            if(item.status === "පිරිසිදු කරමින් සිටියි.") statusClass = "status-cleaning";
-            if(item.status === "පිරිසිදු කළා.") statusClass = "status-resolved";
-            if(item.status === "අසත්‍ය තොරතුරකි.") statusClass = "status-fake";
-
-            const cardHTML = `
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                        <span class="status-badge ${statusClass}">${item.status}</span>
-                        <span style="font-size: 11px; color: #777;">${item.date} ${item.time}</span>
-                    </div>
-                    <img src="${item.photo}" class="image-preview">
-                    ${item.text ? `<p style="margin-top:8px; font-size:13px;"><b>විස්තරය:</b> ${item.text}</p>` : ''}
-                    <p style="font-size: 11px; color: #555; margin-top:5px;">📍 Location: ${item.location}</p>
-                    
-                    ${item.afterPhoto ? `
-                        <div style="margin-top:10px; background:#e8f5e9; padding:8px; border-radius:6px;">
-                            <p style="font-size:12px; color:#2e7d32; font-weight:bold;">✨ පිරිසිදු කළ පසු ඡායාරූපය (After Photo):</p>
-                            <img src="${item.afterPhoto}" class="image-preview">
-                        </div>
-                    ` : ''}
-
-                    ${item.status === "සලකා බලමින් සිටියි." ? `
-                        <button class="btn btn-danger" style="margin-top:10px; padding:6px 12px; font-size:12px;" onclick="cancelComplaint(${item.id})">❌ පැමිණිල්ල අස්කර ගන්න</button>
-                    ` : ''}
-                </div>
-            `;
-
-            if(isResolved) {
-                resolvedContainer.innerHTML += cardHTML;
-            }
-
-            if(!is24HoursPassed) {
-                activeContainer.innerHTML += cardHTML;
-            }
-        });
-    }
-
-    function cancelComplaint(id) {
-        if(confirm("ඔබට මෙම පැමිණිල්ල ඉවත් කර ගැනීමට අවශ්‍යද?")) {
-            let complaints = JSON.parse(localStorage.getItem('cleanlk_complaints') || "[]");
-            complaints = complaints.filter(c => c.id !== id);
-            localStorage.setItem('cleanlk_complaints', JSON.stringify(complaints));
-            loadUserComplaints();
-        }
-    }
-
-    function submitSuggestion() {
-        const text = document.getElementById('suggestion-text').value.trim();
-        if(!text) {
-            alert("කරුණාකර ඔබගේ අදහස සටහන් කරන්න.");
-            return;
-        }
-
-        let suggestions = JSON.parse(localStorage.getItem('cleanlk_suggestions') || "[]");
-        suggestions.push({
-            user: currentUser,
-            text: text,
-            date: new Date().toLocaleDateString(),
-            time: new Date().toLocaleTimeString()
-        });
-
-        localStorage.setItem('cleanlk_suggestions', JSON.stringify(suggestions));
-        alert("✅ ඔබගේ යෝජනාව සාර්ථකව ජනතා සවන වෙත යොමු කරන ලදී!");
-        document.getElementById('suggestion-text').value = '';
     }
 </script>
 </body>
