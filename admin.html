@@ -116,6 +116,12 @@
         button.btn-update:hover {
             background: #1b5e20;
         }
+        .btn-danger {
+            background: #e53935 !important;
+        }
+        .btn-danger:hover {
+            background: #c62828 !important;
+        }
         .warning-badge {
             background: #ffebee;
             color: #c62828;
@@ -132,12 +138,10 @@
             opacity: 0.7;
         }
     </style>
-
     <!-- Firebase SDKs (PC සහ Phone අතර දත්ත සජීවීව Share වීමට) -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
       import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
       const firebaseConfig = {
         apiKey: "AIzaSyDtOiVEWrArAyQgqvqsU2TVI2cdTHCEisO",
         authDomain: "cleanlk-76d7a.firebaseapp.com",
@@ -147,29 +151,24 @@
         appId: "1:411277096952:web:dc356b1c5c88d847b4c80d",
         measurementId: "G-E2E1L4LH88"
       };
-
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
       window.db = db;
-
       let allComplaintsData = [];
 
-      // පැමිණිලි Firebase වෙතින් ලබාගැනීම (PC සහ Phone දෙකෙන්ම එකම දත්ත පෙනේ)
       window.loadAdminComplaints = async function() {
           const container = document.getElementById('admin-complaints-list');
           container.innerHTML = "<p style='color:#777;'>පැමිණිලි ලබාගනිමින් පවතී...</p>";
-
           try {
               const querySnapshot = await getDocs(collection(db, "complaints"));
               allComplaintsData = [];
-              
+                            
               querySnapshot.forEach((documentSnap) => {
                   allComplaintsData.push({ id: documentSnap.id, ...documentSnap.data() });
               });
 
               updateStatistics(allComplaintsData);
               renderComplaintsList(allComplaintsData);
-
           } catch (e) {
               console.error("Error loading complaints: ", e);
               container.innerHTML = "<p style='color:red;'>පැමිණිලි ලබාගැනීමේ දෝෂයක් ඇතිවිය.</p>";
@@ -180,7 +179,7 @@
           document.getElementById('stat-total').innerText = data.length;
           let inProgressCount = data.filter(item => item.status === 'පිරිසිදු කරමින් සිටියි.').length;
           let resolvedCount = data.filter(item => item.status === 'පිරිසිදු කළා.').length;
-          
+                    
           document.getElementById('stat-progress').innerText = inProgressCount;
           document.getElementById('stat-resolved').innerText = resolvedCount;
       }
@@ -196,8 +195,7 @@
 
           data.forEach((item) => {
               const docId = item.id;
-              
-              // Location එක ක්ලික් කළ විට Map එකෙන් විවෘත වන සේ සකස් කිරීම
+                            
               let locationHtml = '';
               if (item.location) {
                   if (item.location.startsWith('http')) {
@@ -234,6 +232,7 @@
                       </div>
 
                       <button class="btn-update" onclick="updateComplaintStatus('${docId}')">ක්‍රියාමාර්ගය යාවත්කාලීන කරන්න</button>
+                      <button class="btn-update btn-danger" style="margin-top: 6px;" onclick="deleteComplaint('${docId}')">🗑️ පැමිණිල්ල ඉවත් කරන්න (Delete)</button>
                   </div>
               `;
           });
@@ -250,10 +249,8 @@
 
               const matchesSearch = location.includes(searchText) || user.includes(searchText);
               const matchesStatus = (selectedStatus === "all") || (status === selectedStatus);
-
               return matchesSearch && matchesStatus;
           });
-
           renderComplaintsList(filtered);
       };
 
@@ -291,6 +288,20 @@
           } catch (e) {
               console.error("Error updating status: ", e);
               alert("යාවත්කාලීන කිරීමේදී දෝෂයක් ඇතිවිය.");
+          }
+      };
+
+      // Admin විසින් පැමිණිල්ලක් සම්පූර්ණයෙන්ම Delete කිරීමේ පහසුකම
+      window.deleteComplaint = async function(docId) {
+          if (confirm("⚠️ ඔබට මෙම පැමිණිල්ල දත්ත ගබඩාවෙන් සම්පූර්ණයෙන්ම ඉවත් කිරීමට (Delete කිරීමට) අවශ්‍ය බව විශ්වාසද?")) {
+              try {
+                  await deleteDoc(doc(db, "complaints", docId));
+                  alert("🗑️ පැමිණිල්ල සාර්ථකව ඉවත් කරන ලදී!");
+                  loadAdminComplaints();
+              } catch (e) {
+                  console.error("Error deleting complaint:", e);
+                  alert("පැමිණිල්ල ඉවත් කිරීමේදී දෝෂයක් ඇතිවිය.");
+              }
           }
       };
 
@@ -358,7 +369,7 @@
                       <div class="card">
                           <h4>${item.title}</h4>
                           <p style="font-size:13px; color:#555;">${item.body}</p>
-                          <button class="btn-update" style="background:#e53935; margin-top:8px;" onclick="deletePoster('${docId}')">🗑️ ඉවත් කරන්න</button>
+                          <button class="btn-update btn-danger" style="margin-top:8px;" onclick="deletePoster('${docId}')">🗑️ ඉවත් කරන්න</button>
                       </div>
                   `;
               });
@@ -392,15 +403,14 @@
     }
 </script>
 
-<header> 
-    <h1>🍃 Clean.lk Admin Panel</h1> 
-    <p>පරිපාලන මෙහෙයුම් පද්ධතිය</p>
+<header>
+     <h1>🍃 Clean.lk Admin Panel</h1>
+     <p>පරිපාලන මෙහෙයුම් පද්ධතිය</p>
 </header>
 
 <div class="container">
-    <!-- Admin Tab 1: ජනතා පැමිණිලි --> 
+    <!-- Admin Tab 1: ජනතා පැමිණිලි -->
     <div id="admin-tab1" class="tab-content active"> 
-
         <!-- Dashboard Statistics -->
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
             <div style="background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
@@ -434,13 +444,13 @@
         <div class="plant-decor">🌿 🍃 🌸 🍃 🌿</div> 
     </div>
 
-    <!-- Admin Tab 2: යෝජනා --> 
+    <!-- Admin Tab 2: යෝජනා -->
     <div id="admin-tab2" class="tab-content"> 
         <h3 style="margin-bottom: 12px; color: var(--admin-dark);">👂 ජනතා සවන - යෝජනා හා අදහස්</h3> 
         <div id="admin-suggestions-list"></div> 
     </div>
 
-    <!-- Admin Tab 3: පෝස්ටර් පාලනය --> 
+    <!-- Admin Tab 3: පෝස්ටර් පාලනය -->
     <div id="admin-tab3" class="tab-content"> 
         <h3 style="margin-bottom: 12px; color: var(--admin-dark);">🖼️ පද්ධති පෝස්ටර් හා දැනුම්දීම් පාලනය</h3> 
         <div class="card"> 
