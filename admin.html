@@ -138,7 +138,7 @@
             opacity: 0.7;
         }
     </style>
-    <!-- Firebase SDKs (PC සහ Phone අතර දත්ත සජීවීව Share වීමට) -->
+    <!-- Firebase SDKs -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
       import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -162,7 +162,7 @@
           try {
               const querySnapshot = await getDocs(collection(db, "complaints"));
               allComplaintsData = [];
-                            
+                      
               querySnapshot.forEach((documentSnap) => {
                   allComplaintsData.push({ id: documentSnap.id, ...documentSnap.data() });
               });
@@ -179,7 +179,7 @@
           document.getElementById('stat-total').innerText = data.length;
           let inProgressCount = data.filter(item => item.status === 'පිරිසිදු කරමින් සිටියි.').length;
           let resolvedCount = data.filter(item => item.status === 'පිරිසිදු කළා.').length;
-                    
+                  
           document.getElementById('stat-progress').innerText = inProgressCount;
           document.getElementById('stat-resolved').innerText = resolvedCount;
       }
@@ -195,7 +195,7 @@
 
           data.forEach((item) => {
               const docId = item.id;
-                            
+                      
               let locationHtml = '';
               if (item.location) {
                   if (item.location.startsWith('http')) {
@@ -291,7 +291,6 @@
           }
       };
 
-      // Admin විසින් පැමිණිල්ලක් සම්පූර්ණයෙන්ම Delete කිරීමේ පහසුකම
       window.deleteComplaint = async function(docId) {
           if (confirm("⚠️ ඔබට මෙම පැමිණිල්ල දත්ත ගබඩාවෙන් සම්පූර්ණයෙන්ම ඉවත් කිරීමට (Delete කිරීමට) අවශ්‍ය බව විශ්වාසද?")) {
               try {
@@ -330,27 +329,53 @@
           }
       };
 
+      // පෝස්ටරය සමඟ පින්තූරයක් එක් කිරීමට (Base64 මඟින්)
       window.addPoster = async function() {
           const title = document.getElementById('poster-title').value.trim();
           const body = document.getElementById('poster-body').value.trim();
+          const posterPhotoInput = document.getElementById('poster-photo-input');
+
           if(!title || !body) {
-              alert("සියලු විස්තර පුරවන්න.");
+              alert("කරුණාකර ශීර්ෂය සහ විස්තරය පුරවන්න.");
               return;
           }
+
           try {
-              await addDoc(collection(db, "posters"), {
-                  title: title,
-                  body: body,
-                  timestamp: Date.now()
-              });
-              alert("පෝස්ටරය එක් කරන ලදී!");
-              document.getElementById('poster-title').value = '';
-              document.getElementById('poster-body').value = '';
-              loadPosters();
+              if (posterPhotoInput && posterPhotoInput.files[0]) {
+                  const reader = new FileReader();
+                  reader.onload = async function(e) {
+                      await addDoc(collection(db, "posters"), {
+                          title: title,
+                          body: body,
+                          photo: e.target.result,
+                          timestamp: Date.now()
+                      });
+                      alert("පින්තූරය සමඟ පෝස්ටරය සාර්ථකව එක් කරන ලදී!");
+                      resetPosterForm();
+                  };
+                  reader.readAsDataURL(posterPhotoInput.files[0]);
+              } else {
+                  await addDoc(collection(db, "posters"), {
+                      title: title,
+                      body: body,
+                      photo: "",
+                      timestamp: Date.now()
+                  });
+                  alert("පෝස්ටරය එක් කරන ලදී!");
+                  resetPosterForm();
+              }
           } catch(e) {
               console.error("Error adding poster:", e);
+              alert("පෝස්ටරය එක් කිරීමේදී දෝෂයක් ඇතිවිය.");
           }
       };
+
+      function resetPosterForm() {
+          document.getElementById('poster-title').value = '';
+          document.getElementById('poster-body').value = '';
+          document.getElementById('poster-photo-input').value = '';
+          loadPosters();
+      }
 
       window.loadPosters = async function() {
           const container = document.getElementById('poster-manage-list');
@@ -368,7 +393,8 @@
                   container.innerHTML += `
                       <div class="card">
                           <h4>${item.title}</h4>
-                          <p style="font-size:13px; color:#555;">${item.body}</p>
+                          ${item.photo ? `<img src="${item.photo}" class="image-preview">` : ''}
+                          <p style="font-size:13px; color:#555; margin-top: 6px;">${item.body}</p>
                           <button class="btn-update btn-danger" style="margin-top:8px;" onclick="deletePoster('${docId}')">🗑️ ඉවත් කරන්න</button>
                       </div>
                   `;
@@ -379,11 +405,13 @@
       };
 
       window.deletePoster = async function(docId) {
-          try {
-              await deleteDoc(doc(db, "posters", docId));
-              loadPosters();
-          } catch(e) {
-              console.error("Error deleting poster:", e);
+          if (confirm("මෙම පෝස්ටරය ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද?")) {
+              try {
+                  await deleteDoc(doc(db, "posters", docId));
+                  loadPosters();
+              } catch(e) {
+                  console.error("Error deleting poster:", e);
+              }
           }
       };
 
@@ -457,6 +485,8 @@
             <h4>නව පෝස්ටරයක් / දැනුම්දීමක් එක් කරන්න</h4> 
             <input type="text" id="poster-title" placeholder="ශීර්ෂය..."> 
             <textarea id="poster-body" placeholder="විස්තරය..." style="height:80px;"></textarea> 
+            <label style="font-size: 12px; color: #555; margin-top: 6px; display: block;"><b>පෝස්ටර් පින්තූරය (අත්‍යවශ්‍ය නැත):</b></label>
+            <input type="file" id="poster-photo-input" accept="image/*">
             <button class="btn-update" onclick="addPoster()">පෝස්ටරය පලකරන්න</button> 
         </div> 
         <div id="poster-manage-list"></div> 
