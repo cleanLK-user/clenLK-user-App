@@ -90,7 +90,7 @@
             border: none;
             flex: 1;
             height: 100%;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             color: #555;
             cursor: pointer;
@@ -216,11 +216,21 @@
             border-radius: 8px;
             margin-top: 8px;
         }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #f9fbf9;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
     </style>
     <!-- Firebase SDKs -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-      import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyDtOiVEWrArAyQgqvqsU2TVI2cdTHCEisO",
@@ -267,10 +277,11 @@
           currentUser = nameInput;
           document.getElementById('registration-screen').style.display = 'none';
           document.getElementById('main-app').style.display = 'block';
-                            
+              
           initGPS();
           loadUserComplaints();
           loadPosters();
+          loadLeaderboard();
       };
 
       window.submitComplaint = async function() {
@@ -324,6 +335,7 @@
                       time: new Date().toLocaleTimeString(),
                       status: "සලකා බලමින් සිටියි.",
                       afterPhoto: null,
+                      pointsAwarded: false, // Points ekata check kirima sathi
                       timestamp: Date.now()
                   };
 
@@ -338,7 +350,7 @@
                       switchTab('tab2');
                   } catch (err) {
                       console.error("Error adding complaint: ", err);
-                      alert("පැමිණිල්ල යැවීමේදී දෝෂයක් ඇතිවිය. (ඡායාරූපය ඉතා විශාල විය හැක)");
+                      alert("පැමිණිල්ල යැවීමේදී දෝෂයක් ඇතිවිය.");
                   }
               };
           };
@@ -467,6 +479,7 @@
                       html += `
                           <div class="card" style="border-left-color: #2196f3;">
                               <h3>📢 ${item.title}</h3>
+                              ${item.photo ? `<img src="${item.photo}" class="image-preview">` : ''}
                               <p style="font-size: 13px; color: #666; margin-top: 5px;">${item.body}</p>
                           </div>
                       `;
@@ -475,6 +488,61 @@
               }
           } catch(e) {
               console.error("Error loading posters:", e);
+          }
+      };
+
+      // Leaderboard & Points Load Function
+      window.loadLeaderboard = async function() {
+          const listContainer = document.getElementById('leaderboard-list');
+          listContainer.innerHTML = "<p style='font-size:13px; color:#888;'>පූරණය වෙමින්...</p>";
+
+          try {
+              const querySnapshot = await getDocs(collection(db, "complaints"));
+              let userPointsMap = {};
+
+              querySnapshot.forEach((docSnap) => {
+                  let data = docSnap.data();
+                  // Jevela admin status "පිරිසිදු කළා." kiwa "පිරිසිදු කරමින් සිටියි." karto points add hoil
+                  if(data.user && (data.status === "පිරිසිදු කළා." || data.status === "පිරිසිදු කරමින් සිටියි.")) {
+                      if(!userPointsMap[data.user]) {
+                          userPointsMap[data.user] = 0;
+                      }
+                      // Prati complaint 10 points
+                      userPointsMap[data.user] += 10;
+                  }
+              });
+
+              // Sort users by points
+              let sortedUsers = Object.keys(userPointsMap).map(user => {
+                  return { name: user, points: userPointsMap[user] };
+              }).sort((a, b) => b.points - a.points);
+
+              listContainer.innerHTML = "";
+              if(sortedUsers.length === 0) {
+                  listContainer.innerHTML = "<p style='font-size:13px; color:#888;'>තවම ලකුණු ලබාගත් පරිශීලකයින් නොමැත.</p>";
+                  return;
+              }
+
+              sortedUsers.forEach((u, index) => {
+                  // Plant growing levels based on points
+                  let plantBadge = "🌱 ළපටි පැළයක්";
+                  if(u.points >= 30) plantBadge = "🌿 වැඩෙන පැළයක්";
+                  if(u.points >= 60) plantBadge = "🌳 මහ ගසක්";
+
+                  listContainer.innerHTML += `
+                      <div class="leaderboard-item">
+                          <div>
+                              <b>#${index + 1} ${u.name}</b>
+                              <div style="font-size:11px; color:#555;">මට්ටම: ${plantBadge}</div>
+                          </div>
+                          <div style="font-weight:bold; color:var(--primary);">⭐ ${u.points} Points</div>
+                      </div>
+                  `;
+              });
+
+          } catch(e) {
+              console.error("Error loading leaderboard:", e);
+              listContainer.innerHTML = "<p style='font-size:13px; color:red;'>දෝෂයක් ඇතිවිය.</p>";
           }
       };
     </script>
@@ -503,7 +571,7 @@
 <!-- Main App Views -->
 <div id="main-app" style="display: none;">
             <div class="container">
-                        <!-- Tab 1: පැමිණිලි -->
+                <!-- Tab 1: පැමිණිලි -->
                 <div id="tab1" class="tab-content active">
                         <div class="card">
                                 <h3>📸 කසළ ගොඩෙහි ඡායාරූපය</h3>
@@ -515,7 +583,7 @@
                                 <div id="gps-indicator" class="gps-badge">📍 GPS: ස්ථානය සොයමින්...</div>
 
                                 <div class="warning-box">
-                                        ⚠️ <b>විශේෂ දැනුම්දීමයි:</b> අසත්‍ය පැමිණිල්ලක් ඉදිරිපත් කළහොත් නීතිමය පියවර ගන්නා අතර ඔබගේ ඇප් ගිණුම අත්හිටුවනු ලැබේ.
+                                    ⚠️ <b>විශේෂ දැනුම්දීමයි:</b> අසත්‍ය පැමිණිල්ලක් ඉදිරිපත් කළහොත් නීතිමය පියවර ගන්නා අතර ඔබගේ ඇප් ගිණුම අත්හිටුවනු ලැබේ.
                                 </div>
 
                                 <button class="btn" style="margin-top: 15px;" onclick="submitComplaint()">📤 පැමිණිල්ල යොමු කරන්න</button>
@@ -542,18 +610,23 @@
                     "අප පරිසරය ආරක්ෂා කළහොත් පරිසරය අපව ආරක්ෂා කරනු ඇත. ඔබ බැහැර කරන සෑම කසළ ප්ලාස්ටික් කැබැල්ලක්ම හෙට දිනයේ අනාගත පරපුරට තර්ජනයක් විය හැක."
                 </p>
             </div>
-                        <div id="posters-container">
-                <div class="card" style="border-left-color: #2196f3;">
-                                    <h3>📢 ශ්‍රමදාන හා පරිසර දැනුම්දීම්</h3>
-                                    <p style="font-size: 14px; color: #333;"><b>නගර සභා පරිසර පිරිසිදු කිරීමේ වැඩසටහන</b></p>
-                                    <p style="font-size: 13px; color: #666; margin-top: 5px;">ලබන සෙනසුරාදා පෙ.ව. 7.00 සිට ප්‍රධාන නගර පරිශ්‍රයේදී ශ්‍රමදාන ව්‍යාපාරයක් පැවැත්වේ.</p>
-                            </div>
-            </div>
+                        <div id="posters-container"></div>
             <div class="decor-plants">🌸 🌿 🌺 🍀</div>
                 </div>
 
-        <!-- Tab 4: සවන -->
+        <!-- Tab 4: ලකුණු හා ශ්‍රේණිගත කිරීම (Leaderboard) -->
                 <div id="tab4" class="tab-content">
+                        <div class="card" style="border-left-color: #ff9800;">
+                                <h3>⭐ පරිසර හිතකාමී ලකුණු සහ පැළ</h3>
+                                <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                                    ඔබගේ පැමිණිලි වලට අනුමැතිය ලැබී ක්‍රියාත්මක වන විට ඔබට ලකුණු ලැබෙන අතර ඔබගේ පැළය (Plant Level) වර්ධනය වේ!
+                                </p>
+                                <div id="leaderboard-list"></div>
+                        </div>
+                </div>
+
+        <!-- Tab 5: සවන -->
+                <div id="tab5" class="tab-content">
                         <div class="card">
                                 <h3>👂 ජනතා සවන</h3>
                                 <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
@@ -570,7 +643,8 @@
                 <button id="nav-tab1" class="active" onclick="switchTab('tab1')">පැමිණිලි</button>
                 <button id="nav-tab2" onclick="switchTab('tab2')">මගේ දත්ත</button>
                 <button id="nav-tab3" onclick="switchTab('tab3')">දැනුම්දීම්</button>
-                <button id="nav-tab4" onclick="switchTab('tab4')">සවන</button>
+                <button id="nav-tab4" onclick="switchTab('tab4')">ලකුණු ⭐</button>
+                <button id="nav-tab5" onclick="switchTab('tab5')">සවන</button>
         </nav>
 </div>
 
@@ -587,6 +661,9 @@
         }
         if(tabId === 'tab3') {
             loadPosters();
+        }
+        if(tabId === 'tab4') {
+            loadLeaderboard();
         }
     }
 
